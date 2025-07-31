@@ -131,7 +131,7 @@ const Tickets: React.FC = () => {
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <TicketIcon className="w-4 h-4 mr-2" />
-                        Ticket Type: {ticket.description || 'N/A'}
+                        Ticket Type: {ticket.events.ticket_type || 'N/A'}
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <TicketIcon className="w-4 h-4 mr-2" />
@@ -180,6 +180,10 @@ const Tickets: React.FC = () => {
                           <p className="text-xs opacity-80">Holder</p>
                           <p className="text-sm font-medium">{profile?.name || 'N/A'}</p>
                         </div>
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-xs opacity-80">Ticket Type</p>
+                        <p className="text-sm font-medium">{ticket.events.ticket_type || 'N/A'}</p>
                       </div>
                     </div>
                   </div>

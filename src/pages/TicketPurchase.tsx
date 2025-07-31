@@ -12,7 +12,7 @@ const TicketPurchase: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [ticketDescription, setTicketDescription] = useState('General Admission');
+  const [ticketDescription, setTicketDescription] = useState('Free');
 
   useEffect(() => {
     fetchEvent();
@@ -32,6 +32,7 @@ const TicketPurchase: React.FC = () => {
 
       if (error) throw error;
       setEvent(data);
+      setTicketDescription(data.ticket_type || 'Free');
     } catch (error) {
       console.error('Error fetching event:', error);
       toast.error('Error loading event details');
@@ -140,12 +141,10 @@ const TicketPurchase: React.FC = () => {
                   <span className="font-medium">Price:</span>{' '}
                   ₹{event.ticket_price?.toLocaleString() || 'Free'}
                 </p>
-                {event.tickets?.length > 0 && (
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Ticket Type:</span>{' '}
-                    {event.tickets[0].description || 'N/A'}
-                  </p>
-                )}
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Ticket Type:</span>{' '}
+                  {event.ticket_type || 'N/A'}
+                </p>
               </div>
             </div>
             
@@ -154,15 +153,18 @@ const TicketPurchase: React.FC = () => {
               <div className="mt-4 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ticket Description
+                    Ticket Type
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={ticketDescription}
                     onChange={(e) => setTicketDescription(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., General Admission"
-                  />
+                  >
+                    <option value="Free">Free</option>
+                    <option value="Paid">Paid</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Early Bird">Early Bird</option>
+                  </select>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Confirm your purchase for this event.

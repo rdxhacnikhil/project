@@ -44,7 +44,8 @@ const schema = yup.object({
     }
   ),
   ticket_price: yup.number().min(0, 'Ticket price must be positive').nullable(),
-  ticket_limit: yup.number().min(1, 'Must have at least 1 ticket').nullable()
+  ticket_limit: yup.number().min(1, 'Must have at least 1 ticket').nullable(),
+  ticket_type: yup.string().oneOf(['Free', 'Paid', 'VIP', 'Early Bird']).required('Ticket type is required')
 });
 
 interface EventFormData {
@@ -71,6 +72,7 @@ interface EventFormData {
   booking_deadline?: string | null;
   ticket_price?: number | null;
   ticket_limit?: number | null;
+  ticket_type: 'Free' | 'Paid' | 'VIP' | 'Early Bird';
 }
 
 const CreateEvent: React.FC = () => {
@@ -91,7 +93,8 @@ const CreateEvent: React.FC = () => {
       prize_money: 0,
       booking_deadline: null,
       ticket_price: null,
-      ticket_limit: null
+      ticket_limit: null,
+      ticket_type: 'Free'
     }
   });
 
@@ -356,6 +359,24 @@ const CreateEvent: React.FC = () => {
           {/* Ticket Settings */}
           <div className="mt-6 border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">🎟️ Ticket Settings</h2>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ticket Type *
+              </label>
+              <select
+                {...register('ticket_type')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="Free">Free</option>
+                <option value="Paid">Paid</option>
+                <option value="VIP">VIP</option>
+                <option value="Early Bird">Early Bird</option>
+              </select>
+              {errors.ticket_type && (
+                <p className="mt-1 text-sm text-red-600">{errors.ticket_type.message}</p>
+              )}
+            </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -188,10 +188,10 @@ const Events: React.FC = () => {
                       ₹{event.ticket_price.toLocaleString()} per ticket
                     </div>
                   )}
-                  {event.tickets?.length > 0 && (
+                  {event.ticket_type && (
                     <div className="flex items-center text-sm text-gray-600">
                       <Ticket className="w-4 h-4 mr-2" />
-                      Ticket Type: {event.tickets[0].description || 'N/A'}
+                      Ticket Type: {event.ticket_type}
                     </div>
                   )}
                 </div>
