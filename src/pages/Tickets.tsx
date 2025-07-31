@@ -2,15 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Ticket as TicketIcon, Calendar, MapPin, Users, Eye } from 'lucide-react';
 import { supabase, Ticket, Event } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 interface TicketWithEvent extends Ticket {
-  events: Event;
+  events: Event & { user_id: { name: string }; categories: { name: string } };
 }
 
 const Tickets: React.FC = () => {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState<TicketWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,15 +29,21 @@ const Tickets: React.FC = () => {
       const { data, error } = await supabase
         .from('tickets')
         .select(`
-          *,
+          id,
+          event_id,
+          user_id,
+          created_at,
+          status,
+          purchase_price,
+          description,
           events (
             *,
-            categories (name),
-            profiles (name)
+            categories(name),
+            user_id:profiles(name)
           )
         `)
         .eq('user_id', user.id)
-        .order('booked_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setTickets(data || []);
@@ -119,13 +127,21 @@ const Tickets: React.FC = () => {
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <TicketIcon className="w-4 h-4 mr-2" />
-                        Booked on {format(new Date(ticket.booked_at), 'MMM dd, yyyy')}
+                        Booked on {format(new Date(ticket.created_at), 'MMM dd, yyyy')}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <TicketIcon className="w-4 h-4 mr-2" />
+                        Ticket Type: {ticket.description || 'N/A'}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <TicketIcon className="w-4 h-4 mr-2" />
+                        Price: ₹{ticket.purchase_price.toLocaleString()}
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="text-xs text-gray-500">
-                        Organized by {ticket.events.organizer_name}
+                        Organized by {ticket.events.user_id?.name || ticket.events.organizer_name}
                       </div>
                       <div className="flex items-center space-x-4">
                         {ticket.events.prize_money > 0 && (
@@ -133,7 +149,10 @@ const Tickets: React.FC = () => {
                             ₹{ticket.events.prize_money.toLocaleString()} Prize
                           </span>
                         )}
-                        <button className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium text-sm">
+                        <button
+                          onClick={() => navigate(`/events/${ticket.event_id}`)}
+                          className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium text-sm"
+                        >
                           <Eye className="w-4 h-4 mr-1" />
                           View Details
                         </button>
@@ -159,7 +178,7 @@ const Tickets: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-xs opacity-80">Holder</p>
-                          <p className="text-sm font-medium">{profile?.name}</p>
+                          <p className="text-sm font-medium">{profile?.name || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
@@ -176,7 +195,7 @@ const Tickets: React.FC = () => {
               You haven't booked any event tickets yet.
             </p>
             <button
-              onClick={() => window.location.href = '/events'}
+              onClick={() => navigate('/events')}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Browse Events

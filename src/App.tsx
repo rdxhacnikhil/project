@@ -8,6 +8,7 @@ import AuthForm from './components/Auth/AuthForm';
 import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
 import CreateEvent from './pages/CreateEvent';
+import TicketPurchase from './pages/TicketPurchase';
 import Users from './pages/Users';
 import Tickets from './pages/Tickets';
 import Revenues from './pages/Revenues';
@@ -53,6 +54,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="events" element={<Events />} />
               <Route path="events/create" element={<CreateEvent />} />
+              <Route path="events/:id/ticket" element={<TicketPurchase />} />
               <Route path="users" element={<Users />} />
               <Route path="tickets" element={<Tickets />} />
               <Route path="revenues" element={<Revenues />} />

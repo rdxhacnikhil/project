@@ -32,7 +32,19 @@ const schema = yup.object({
   is_registration_required: yup.boolean(),
   enable_qa: yup.boolean(),
   require_feedback: yup.boolean(),
-  status: yup.string().oneOf(['upcoming', 'ongoing', 'cancelled']).required('Status is required')
+  status: yup.string().oneOf(['upcoming', 'ongoing', 'cancelled']).required('Status is required'),
+  booking_deadline: yup.string().nullable().test(
+    'is-before-event',
+    'Booking deadline must be before event date',
+    function (value) {
+      if (!value) return true;
+      const eventDate = this.parent.date_time;
+      if (!eventDate) return true;
+      return new Date(value) < new Date(eventDate);
+    }
+  ),
+  ticket_price: yup.number().min(0, 'Ticket price must be positive').nullable(),
+  ticket_limit: yup.number().min(1, 'Must have at least 1 ticket').nullable()
 });
 
 interface EventFormData {
@@ -56,6 +68,9 @@ interface EventFormData {
   enable_qa: boolean;
   require_feedback: boolean;
   status: 'upcoming' | 'ongoing' | 'cancelled';
+  booking_deadline?: string | null;
+  ticket_price?: number | null;
+  ticket_limit?: number | null;
 }
 
 const CreateEvent: React.FC = () => {
@@ -73,7 +88,10 @@ const CreateEvent: React.FC = () => {
       enable_qa: true,
       require_feedback: true,
       status: 'upcoming',
-      prize_money: 0
+      prize_money: 0,
+      booking_deadline: null,
+      ticket_price: null,
+      ticket_limit: null
     }
   });
 
@@ -144,10 +162,8 @@ const CreateEvent: React.FC = () => {
 
     setLoading(true);
     try {
-      // Upload banner if provided
       const bannerUrl = await uploadBanner();
 
-      // Prepare event data
       const eventData = {
         ...data,
         user_id: user.id,
@@ -158,7 +174,7 @@ const CreateEvent: React.FC = () => {
         website_url: data.website_url || null,
         promo_video_url: data.promo_video_url || null,
         organizer_details: data.organizer_details || null,
-        tags: data.tags || null
+        tags: data.tags || null,
       };
 
       const { error } = await supabase
@@ -335,6 +351,57 @@ const CreateEvent: React.FC = () => {
             {errors.venue && (
               <p className="mt-1 text-sm text-red-600">{errors.venue.message}</p>
             )}
+          </div>
+
+          {/* Ticket Settings */}
+          <div className="mt-6 border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">🎟️ Ticket Settings</h2>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Booking Deadline
+              </label>
+              <input
+                {...register('booking_deadline')}
+                type="datetime-local"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {errors.booking_deadline && (
+                <p className="mt-1 text-sm text-red-600">{errors.booking_deadline.message}</p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ticket Price (₹)
+              </label>
+              <input
+                {...register('ticket_price')}
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="0"
+              />
+              {errors.ticket_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.ticket_price.message}</p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Total Tickets Available
+              </label>
+              <input
+                {...register('ticket_limit')}
+                type="number"
+                min="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Unlimited"
+              />
+              {errors.ticket_limit && (
+                <p className="mt-1 text-sm text-red-600">{errors.ticket_limit.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Organizer Information */}

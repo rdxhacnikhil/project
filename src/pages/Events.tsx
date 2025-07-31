@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Calendar, MapPin, Users, DollarSign, Search, Filter } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, DollarSign, Search, Ticket } from 'lucide-react';
 import { supabase, Event } from '../lib/supabase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -28,7 +28,7 @@ const Events: React.FC = () => {
           *,
           categories(name),
           user_id:profiles(name),
-          tickets(id)
+          tickets(id, user_id, created_at, status, purchase_price, description)
         `)
         .order('created_at', { ascending: false });
 
@@ -162,18 +162,36 @@ const Events: React.FC = () => {
                     <Calendar className="w-4 h-4 mr-2" />
                     {format(new Date(event.date_time), 'MMM dd, yyyy - hh:mm a')}
                   </div>
+                  {event.booking_deadline && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Booking by: {format(new Date(event.booking_deadline), 'MMM dd, yyyy - hh:mm a')}
+                    </div>
+                  )}
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="w-4 h-4 mr-2" />
                     {event.venue}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Users className="w-4 h-4 mr-2" />
-                    {event.tickets?.length || 0} participants
+                    {event.tickets?.length || 0}/{event.ticket_limit || 'Unlimited'} tickets
                   </div>
                   {event.prize_money > 0 && (
                     <div className="flex items-center text-sm text-gray-600">
                       <DollarSign className="w-4 h-4 mr-2" />
                       ₹{event.prize_money.toLocaleString()} prize
+                    </div>
+                  )}
+                  {event.ticket_price > 0 && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Ticket className="w-4 h-4 mr-2" />
+                      ₹{event.ticket_price.toLocaleString()} per ticket
+                    </div>
+                  )}
+                  {event.tickets?.length > 0 && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Ticket className="w-4 h-4 mr-2" />
+                      Ticket Type: {event.tickets[0].description || 'N/A'}
                     </div>
                   )}
                 </div>
@@ -182,12 +200,22 @@ const Events: React.FC = () => {
                   <div className="text-xs text-gray-500">
                     By {event.profiles?.name || 'Unknown'}
                   </div>
-                  <Link
-                    to={`/events/${event.id}`}
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-                  >
-                    View Details
-                  </Link>
+                  <div>
+                    <Link
+                      to={`/events/${event.id}`}
+                      className="text-blue-600 hover:text-blue-700 font-medium text-sm mr-4"
+                    >
+                      View Details
+                    </Link>
+                    {event.ticket_price > 0 && event.status === 'upcoming' && (
+                      <Link
+                        to={`/events/${event.id}/ticket`}
+                        className="text-green-600 hover:text-green-700 font-medium text-sm"
+                      >
+                        Buy Ticket
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
