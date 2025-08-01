@@ -33,27 +33,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('AuthProvider rendering - loading:', loading, 'user:', user);
+
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
+    const initializeAuth = async () => {
+      try {
+        console.log('Initializing auth...');
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+
+        console.log('Session:', session);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
         setLoading(false);
       }
-    });
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
+      try {
+        console.log('Auth state change:', event, session);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
         setLoading(false);
       }
     });
@@ -70,7 +96,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.error('Error fetching profile:', error);
       }
 
       setProfile(data);

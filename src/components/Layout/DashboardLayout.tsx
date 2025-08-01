@@ -11,13 +11,13 @@ const DashboardLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
       
-      <div className="lg:ml-64">
+      <div className="flex-1 flex flex-col">
         <Navbar onSidebarToggle={toggleSidebar} />
         
-        <main className="p-6">
+        <main className="flex-1 p-6">
           <Outlet />
         </main>
       </div>

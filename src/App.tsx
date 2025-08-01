@@ -16,11 +16,18 @@ import Revenues from './pages/Revenues';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 
+// Debug Component
+const DebugInfo = () => {
+  console.log('App component rendering');
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <div className="App">
+          <DebugInfo />
           <Toaster
             position="top-right"
             toastOptions={{

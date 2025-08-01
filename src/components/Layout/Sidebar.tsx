@@ -40,10 +40,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 h-full bg-white shadow-lg z-50 transition-transform duration-300 ease-in-out
+        fixed left-0 top-0 h-screen bg-white shadow-lg z-50 transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
-        w-64
+        lg:relative lg:translate-x-0 lg:z-auto lg:h-full
+        w-64 flex-shrink-0
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}
