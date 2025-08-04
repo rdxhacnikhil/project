@@ -3,9 +3,9 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 
 const signInSchema = yup.object({
   email: yup.string().email('Invalid email').required('Email is required'),
@@ -53,7 +53,7 @@ const AuthForm: React.FC = () => {
     try {
       await signIn(data.email, data.password);
       toast.success('Welcome back!');
-      navigate('/');
+      // Stay on current page instead of redirecting to admin
     } catch (error: any) {
       toast.error(error.message || 'Error signing in');
     } finally {
@@ -77,6 +77,16 @@ const AuthForm: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
+        <div className="flex items-center justify-between mb-8">
+          <Link
+            to="/"
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            <span className="font-medium">Back to Home</span>
+          </Link>
+        </div>
+        
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">EventSync</h1>
           <p className="text-gray-600">

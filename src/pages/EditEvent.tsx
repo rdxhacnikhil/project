@@ -122,19 +122,18 @@ const EditEvent: React.FC = () => {
   };
 
   const fetchEvent = async () => {
-    if (!id || !user) return;
+    if (!id) return;
     try {
       const { data, error } = await supabase
         .from('events')
         .select('*')
         .eq('id', id)
-        .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
       if (!data) {
-        toast.error('Event not found or you are not authorized to edit this event');
-        navigate('/events');
+        toast.error('Event not found');
+        navigate('/admin/events');
         return;
       }
 
@@ -217,7 +216,7 @@ const EditEvent: React.FC = () => {
   };
 
   const onSubmit = async (data: EventFormData) => {
-    if (!user || !id) return;
+    if (!id) return;
 
     setLoading(true);
     try {
@@ -225,7 +224,6 @@ const EditEvent: React.FC = () => {
 
       const eventData = {
         ...data,
-        user_id: user.id,
         banner_url: bannerUrl,
         category_id: data.category_id === 'other' ? null : data.category_id,
         custom_category: data.category_id === 'other' ? data.custom_category : null,
@@ -239,13 +237,12 @@ const EditEvent: React.FC = () => {
       const { error } = await supabase
         .from('events')
         .update(eventData)
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
 
       toast.success('Event updated successfully!');
-      navigate('/events');
+      navigate('/admin/events');
     } catch (error: any) {
       console.error('Error updating event:', error);
       toast.error(error.message || 'Error updating event');

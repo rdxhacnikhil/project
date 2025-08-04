@@ -4,30 +4,26 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/Layout/DashboardLayout';
-import AuthForm from './components/Auth/AuthForm';
 import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
 import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
-import TicketPurchase from './pages/TicketPurchase';
+import EventDetails from './pages/EventDetails';
 import Users from './pages/Users';
 import Tickets from './pages/Tickets';
+import TicketPurchase from './pages/TicketPurchase';
 import Revenues from './pages/Revenues';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
-
-// Debug Component
-const DebugInfo = () => {
-  console.log('App component rendering');
-  return null;
-};
+import AuthForm from './components/Auth/AuthForm';
+import LandingPage from './pages/LandingPage';
 
 function App() {
+  console.log('App component rendering');
   return (
     <AuthProvider>
       <Router>
         <div className="App">
-          <DebugInfo />
           <Toaster
             position="top-right"
             toastOptions={{
@@ -50,9 +46,14 @@ function App() {
           />
           
           <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthForm />} />
+            <Route path="/event/:eventId" element={<EventDetails />} />
+            
+            {/* Protected Admin Routes */}
             <Route
-              path="/*"
+              path="/admin"
               element={
                 <ProtectedRoute>
                   <DashboardLayout />
@@ -62,8 +63,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="events" element={<Events />} />
               <Route path="events/create" element={<CreateEvent />} />
-              <Route path="events/:id/edit" element={<EditEvent />} />
-              <Route path="events/:id/ticket" element={<TicketPurchase />} />
+              <Route path="events/edit/:id" element={<EditEvent />} />
               <Route path="users" element={<Users />} />
               <Route path="tickets" element={<Tickets />} />
               <Route path="revenues" element={<Revenues />} />
@@ -71,6 +71,12 @@ function App() {
               <Route path="settings" element={<Settings />} />
               <Route path="profile" element={<Settings />} />
             </Route>
+            
+            {/* Ticket Purchase Route */}
+            <Route path="/ticket-purchase/:eventId" element={<TicketPurchase />} />
+            
+            {/* Redirect old routes to admin */}
+            <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

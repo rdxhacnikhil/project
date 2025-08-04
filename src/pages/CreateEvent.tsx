@@ -167,12 +167,23 @@ const CreateEvent: React.FC = () => {
     try {
       const bannerUrl = await uploadBanner();
 
+      // Get category name based on category_id
+      const selectedCategory = categories.find(cat => cat.id === data.category_id);
+      const categoryName = data.category_id === 'other' ? data.custom_category : selectedCategory?.name;
+
+      console.log('Category debug:', {
+        category_id: data.category_id,
+        selectedCategory: selectedCategory,
+        categoryName: categoryName,
+        custom_category: data.custom_category
+      });
+
       const eventData = {
         ...data,
         user_id: user.id,
         banner_url: bannerUrl,
         category_id: data.category_id === 'other' ? null : data.category_id,
-        custom_category: data.category_id === 'other' ? data.custom_category : null,
+        custom_category: categoryName,
         max_participants: data.max_participants || null,
         website_url: data.website_url || null,
         promo_video_url: data.promo_video_url || null,

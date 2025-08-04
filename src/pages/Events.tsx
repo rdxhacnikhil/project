@@ -85,17 +85,12 @@ const Events: React.FC = () => {
   };
 
   const handleDelete = async (eventId: string) => {
-    if (!user) {
-      toast.error('You must be logged in to delete an event');
-      return;
-    }
     if (window.confirm('Are you sure you want to delete this event?')) {
       try {
         const { error } = await supabase
           .from('events')
           .delete()
-          .eq('id', eventId)
-          .eq('user_id', user.id);
+          .eq('id', eventId);
 
         if (error) throw error;
         toast.success('Event deleted successfully!');
@@ -161,7 +156,7 @@ const Events: React.FC = () => {
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -194,7 +189,7 @@ const Events: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEvents.length > 0 ? (
           filteredEvents.map((event) => (
-            <div key={event.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div key={event.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
               {event.banner_url && (
                 <img
                   src={event.banner_url}
@@ -268,33 +263,20 @@ const Events: React.FC = () => {
                     >
                       View Details
                     </Link>
-                    {user?.id === event.user_id ? (
-                      <>
-                        <Link
-                          to={`/events/${event.id}/edit`}
-                          className="text-yellow-600 hover:text-yellow-700 font-medium text-sm"
-                        >
-                          <Edit2 className="w-4 h-4 inline mr-1" />
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(event.id)}
-                          className="text-red-600 hover:text-red-700 font-medium text-sm"
-                        >
-                          <Trash2 className="w-4 h-4 inline mr-1" />
-                          Delete
-                        </button>
-                      </>
-                    ) : (
-                      event.ticket_price > 0 && event.status === 'upcoming' && (
-                        <Link
-                          to={`/events/${event.id}/ticket`}
-                          className="text-green-600 hover:text-green-700 font-medium text-sm"
-                        >
-                          Buy Ticket
-                        </Link>
-                      )
-                    )}
+                    <Link
+                      to={`/admin/events/edit/${event.id}`}
+                      className="text-yellow-600 hover:text-yellow-700 font-medium text-sm"
+                    >
+                      <Edit2 className="w-4 h-4 inline mr-1" />
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(event.id)}
+                      className="text-red-600 hover:text-red-700 font-medium text-sm"
+                    >
+                      <Trash2 className="w-4 h-4 inline mr-1" />
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>

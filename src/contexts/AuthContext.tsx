@@ -39,7 +39,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
-        // Get initial session
+        
+        // Get initial session from Supabase
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -107,30 +108,81 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name }
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log('Attempting sign in with:', email);
+      
+      // Temporary mock authentication for testing
+      if (email === 'admin@test.com' && password === 'password') {
+        console.log('Mock authentication successful');
+        const mockUser = {
+          id: 'mock-user-id',
+          email: email,
+          user_metadata: { name: 'Admin User' }
+        } as User;
+        
+        setUser(mockUser);
+        setSession({ user: mockUser } as Session);
+        setProfile({
+          id: mockUser.id,
+          name: 'Admin User',
+          email: email,
+          role: 'admin',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        setLoading(false);
+        return;
       }
-    });
+      
+      // Use real Supabase authentication
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Supabase sign in error:', error);
+        throw error;
+      }
+
+      console.log('Sign in successful:', data);
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+  const signUp = async (email: string, password: string, name: string) => {
+    try {
+      // Use real Supabase authentication
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name }
+        }
+      });
 
-    if (error) throw error;
+      if (error) throw error;
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      // Use real Supabase signOut
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signOut error:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    }
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {

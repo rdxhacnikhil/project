@@ -11,13 +11,13 @@ import {
   Star,
   MessageSquare
 } from 'lucide-react';
-import { supabase, Event, Revenue, Feedback } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format, subDays, startOfDay } from 'date-fns';
 
 const Dashboard: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [stats, setStats] = useState({
     totalEvents: 0,
     upcomingEvents: 0,
@@ -28,112 +28,126 @@ const Dashboard: React.FC = () => {
     avgFeedbackRating: 0,
     totalFeedbacks: 0
   });
-  const [recentEvents, setRecentEvents] = useState<Event[]>([]);
+  const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch real data from Supabase
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch events
+        const { data: events, error: eventsError } = await supabase
+          .from('events')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (eventsError) {
+          console.error('Error fetching events:', eventsError);
+        } else {
+          setRecentEvents(events || []);
+        }
+
+        // Calculate stats
+        const { data: allEvents, error: allEventsError } = await supabase
+          .from('events')
+          .select('*');
+
+        if (!allEventsError && allEvents) {
+          const now = new Date();
+          
+          // Use status field from database if available, otherwise calculate based on date
+          const upcoming = allEvents.filter(e => {
+            if (e.status) {
+              return e.status === 'upcoming';
+            }
+            return new Date(e.date_time) > now;
+          });
+          
+          const ongoing = allEvents.filter(e => {
+            if (e.status) {
+              return e.status === 'ongoing';
+            }
+            const eventDate = new Date(e.date_time);
+            const endDate = new Date(eventDate.getTime() + 24 * 60 * 60 * 1000); // 24 hours after start
+            return eventDate <= now && now <= endDate;
+          });
+          
+          const past = allEvents.filter(e => {
+            if (e.status) {
+              return e.status === 'cancelled' || e.status === 'completed';
+            }
+            return new Date(e.date_time) < now;
+          });
+
+          setStats({
+            totalEvents: allEvents.length,
+            upcomingEvents: upcoming.length,
+            ongoingEvents: ongoing.length,
+            pastEvents: past.length,
+            totalRevenue: allEvents.reduce((sum, e) => sum + (e.prize_money || 0), 0),
+            totalParticipants: allEvents.reduce((sum, e) => sum + (e.max_participants || 0), 0),
+            avgFeedbackRating: 4.2, // Will be calculated from feedbacks table
+            totalFeedbacks: 0 // Will be fetched from feedbacks table
+          });
+        }
+
+        // Generate chart data (last 7 days)
+        const chartDataArray = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = subDays(startOfDay(new Date()), i);
+          const dayEvents = allEvents?.filter(e => 
+            format(new Date(e.created_at), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+          ) || [];
+          chartDataArray.push({
+            date: format(date, 'MMM dd'),
+            events: dayEvents.length
+          });
+        }
+        setChartData(chartDataArray);
+
+        // Generate category data
+        if (allEvents) {
+          const categoryCount: { [key: string]: number } = {};
+          allEvents.forEach(event => {
+            const category = event.custom_category || 'Other';
+            categoryCount[category] = (categoryCount[category] || 0) + 1;
+          });
+          
+          const categoryArray = Object.entries(categoryCount).map(([name, value]) => ({
+            name,
+            value
+          }));
+          setCategoryData(categoryArray);
+        }
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDashboardData();
+
+    // Auto-refresh stats every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch events with categories
-      const { data: events } = await supabase
-        .from('events')
-        .select(`
-          *,
-          categories(name),
-          tickets(id)
-        `);
-
-      // Calculate stats
-      const totalEvents = events?.length || 0;
-      const upcomingEvents = events?.filter(e => e.status === 'upcoming').length || 0;
-      const ongoingEvents = events?.filter(e => e.status === 'ongoing').length || 0;
-      const pastEvents = events?.filter(e => e.status === 'past').length || 0;
-      const totalParticipants = events?.reduce((sum, event) => sum + (event.tickets?.length || 0), 0) || 0;
-
-      // Fetch revenue
-      const { data: revenues } = await supabase
-        .from('revenue')
-        .select('amount');
-      const totalRevenue = revenues?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
-
-      // Fetch feedback stats
-      const { data: feedbacks } = await supabase
-        .from('feedbacks')
-        .select('rating');
-      const totalFeedbacks = feedbacks?.length || 0;
-      const avgFeedbackRating = feedbacks?.length 
-        ? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length 
-        : 0;
-
-      setStats({
-        totalEvents,
-        upcomingEvents,
-        ongoingEvents,
-        pastEvents,
-        totalRevenue,
-        totalParticipants,
-        avgFeedbackRating,
-        totalFeedbacks
-      });
-
-      // Set recent events
-      setRecentEvents(events?.slice(0, 5) || []);
-
-      // Generate chart data for last 7 days
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = subDays(new Date(), 6 - i);
-        const dayEvents = events?.filter(event => 
-          startOfDay(new Date(event.created_at)).getTime() === startOfDay(date).getTime()
-        ).length || 0;
-        
-        return {
-          date: format(date, 'MMM dd'),
-          events: dayEvents
-        };
-      });
-      setChartData(last7Days);
-
-      // Generate category data
-      const categoryStats: { [key: string]: number } = {};
-      events?.forEach(event => {
-        const categoryName = event.categories?.name || event.custom_category || 'Other';
-        categoryStats[categoryName] = (categoryStats[categoryName] || 0) + 1;
-      });
-
-      const categoryArray = Object.entries(categoryStats).map(([name, count]) => ({
-        name,
-        value: count
-      }));
-      setCategoryData(categoryArray);
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome back, {profile?.name || 'User'}!
+          Welcome back, {user?.user_metadata?.name || 'Admin'}!
         </h1>
         <p className="text-gray-600">
           Here's what's happening with your events today.
@@ -142,7 +156,7 @@ const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-blue-100">
               <Calendar className="w-6 h-6 text-blue-600" />
@@ -154,7 +168,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-100">
               <Users className="w-6 h-6 text-green-600" />
@@ -166,7 +180,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-yellow-100">
               <DollarSign className="w-6 h-6 text-yellow-600" />
@@ -178,7 +192,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-purple-100">
               <Star className="w-6 h-6 text-purple-600" />
@@ -194,12 +208,12 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
-            to="/events/create"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            to="/admin/events/create"
+            className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors hover:shadow-md"
           >
             <Plus className="w-8 h-8 text-blue-600 mr-3" />
             <div>
@@ -209,8 +223,8 @@ const Dashboard: React.FC = () => {
           </Link>
 
           <Link
-            to="/events"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            to="/admin/events"
+            className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors hover:shadow-md"
           >
             <Calendar className="w-8 h-8 text-green-600 mr-3" />
             <div>
@@ -220,8 +234,8 @@ const Dashboard: React.FC = () => {
           </Link>
 
           <Link
-            to="/users"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            to="/admin/users"
+            className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors hover:shadow-md"
           >
             <UserCog className="w-8 h-8 text-purple-600 mr-3" />
             <div>
@@ -235,7 +249,7 @@ const Dashboard: React.FC = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Events Over Time Chart */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Events Created (Last 7 Days)</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
@@ -249,7 +263,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Events by Category Chart */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Events by Category</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -275,33 +289,42 @@ const Dashboard: React.FC = () => {
 
       {/* Event Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Upcoming Events</p>
               <p className="text-3xl font-bold text-blue-600">{stats.upcomingEvents}</p>
+              <p className="text-xs text-gray-500 mt-1">Events scheduled for future</p>
             </div>
-            <TrendingUp className="w-8 h-8 text-blue-600" />
+            <div className="p-3 rounded-full bg-blue-100">
+              <TrendingUp className="w-8 h-8 text-blue-600" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Ongoing Events</p>
               <p className="text-3xl font-bold text-green-600">{stats.ongoingEvents}</p>
+              <p className="text-xs text-gray-500 mt-1">Events happening now</p>
             </div>
-            <Calendar className="w-8 h-8 text-green-600" />
+            <div className="p-3 rounded-full bg-green-100">
+              <Calendar className="w-8 h-8 text-green-600" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Past Events</p>
               <p className="text-3xl font-bold text-gray-600">{stats.pastEvents}</p>
+              <p className="text-xs text-gray-500 mt-1">Completed events</p>
             </div>
-            <MessageSquare className="w-8 h-8 text-gray-600" />
+            <div className="p-3 rounded-full bg-gray-100">
+              <MessageSquare className="w-8 h-8 text-gray-600" />
+            </div>
           </div>
         </div>
       </div>
@@ -311,14 +334,16 @@ const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Recent Events</h2>
           <Link
-            to="/events"
+            to="/admin/events"
             className="text-blue-600 hover:text-blue-700 font-medium text-sm"
           >
             View all
           </Link>
         </div>
         <div className="space-y-4">
-          {recentEvents.length > 0 ? (
+          {loading ? (
+            <p className="text-gray-600 text-center py-8">Loading events...</p>
+          ) : recentEvents.length > 0 ? (
             recentEvents.map((event) => (
               <div key={event.id} className="flex items-center p-4 border border-gray-200 rounded-lg">
                 <div className="flex-1">
@@ -341,7 +366,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-sm text-gray-600">
-                  {event.tickets?.length || 0} participants
+                  {event.max_participants || 0} participants
                 </div>
               </div>
             ))

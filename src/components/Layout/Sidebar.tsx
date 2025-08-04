@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -18,14 +18,15 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+  const navigate = useNavigate();
   const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/events', icon: Calendar, label: 'Events' },
-    { to: '/users', icon: Users, label: 'Users' },
-    { to: '/tickets', icon: Ticket, label: 'Tickets' },
-    { to: '/revenues', icon: DollarSign, label: 'Revenues' },
-    { to: '/notifications', icon: Bell, label: 'Notifications' },
-    { to: '/settings', icon: Settings, label: 'Settings' },
+    { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/admin/events', icon: Calendar, label: 'Events' },
+    { to: '/admin/users', icon: Users, label: 'Users' },
+    { to: '/admin/tickets', icon: Ticket, label: 'Tickets' },
+    { to: '/admin/revenues', icon: DollarSign, label: 'Revenues' },
+    { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
+    { to: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
 
   return (
@@ -47,13 +48,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <h1 className="text-xl font-bold text-gray-800">EventSync</h1>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <button
+              onClick={() => navigate('/')}
+              className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+            >
+              EventHub
+            </button>
             <button
               onClick={onToggle}
               className="lg:hidden p-1 rounded-md hover:bg-gray-100"
             >
-              <X className="w-6 h-6" />
+              <X className="w-6 h-6 text-gray-600" />
             </button>
           </div>
 
@@ -67,8 +73,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                     className={({ isActive }) => `
                       flex items-center px-4 py-3 rounded-lg transition-colors duration-200
                       ${isActive 
-                        ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-700' 
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
                       }
                     `}
                     onClick={() => {
@@ -86,9 +92,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t">
+          <div className="p-4 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center">
-              © 2025 EventSync. All rights reserved.
+              © 2025 EventHub. All rights reserved.
             </p>
           </div>
         </div>
